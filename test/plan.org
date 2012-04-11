@@ -1,0 +1,9 @@
+
+
+* start elnode
+* start phantom
+* inject js test code
+* inject js code from elnode
+* call an optional func
+* collect test status
+* kill elnode

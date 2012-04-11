@@ -1,0 +1,24 @@
+
+
+javsscript api should go:
+
+id_set(id) // set the id of this user's session
+camera_select(suggestion or null)
+show_me()
+...
+
+
+
+== What's an 'id'? ==
+
+A unique identifier for this user in this conversation.
+
+The id should come from plaintalk servers.
+
+== What's a conversation? ==
+
+2 (or more) users talking.
+
+== What's a slot number? ==
+
+Your number in the conversation.
