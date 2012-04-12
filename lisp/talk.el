@@ -46,7 +46,10 @@
 (defun talk--pending-p (conversation-id user-id)
   "Is anything pending on the COVERSATION-ID for the USER-ID?"
   (let* ((talk (gethash conversation-id talk-s))
-         (person (gethash user-id talk)))
+         (person
+          (gethash
+           user-id
+           (talk-conversation-people talk))))
     (talk-person-pending person)))
 
 (defun talk--pending-add (to-user from-user text)
@@ -150,17 +153,20 @@
 
 From the HTTPCON we get: `conversation-id' from the path match
 and `user-id' and `text' from the parameters."
+  (elnode-error "talk-handler got %s" httpcon)
   (let ((submit (elnode-http-param httpcon "submit")))
     (if submit
-        (let* ((converation-id (elnode-http-pathinfo httpcon))
+        (let* ((conversation-id (elnode-http-pathinfo httpcon))
                (user (elnode-http-param httpcon "userid"))
                (text (elnode-http-param httpcon "text")))
           (gethash conversation-id talk-s)
           (talk--distrib-pending conversation-id user text)))
-    (elnode-defer-or-do
-      (talk--pending-p conversation-id user)
-      (let ((json-to-send (talk--pending-get conversation-id user)))
-        (elnode-send-json httpcon json-to-send)))))
+    (let* ((conversation-id (elnode-http-param httpcon "c"))
+           (user (elnode-http-param httpcon "userid")))
+      (elnode-defer-or-do
+        (talk--pending-p conversation-id user)
+        (let ((json-to-send (talk--pending-get conversation-id user)))
+          (elnode-send-json httpcon json-to-send))))))
 
 (provide 'talk)
 
