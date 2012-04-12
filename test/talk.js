@@ -5,27 +5,35 @@ try {
   var page = require('webpage').create();
 
   page.onConsoleMessage = function(msg) {
-    console.log("page: " + msg);
+    if (msg == "__quit__") {
+      console.log("all done");
+      phantom.exit();
+    }
+    else {
+      console.log("page: " + msg);
+    }
   };
 
-  /*
-    page.onError = function (msg, trace) {
+  page.onError = function (msg, trace) {
     console.log(msg);
     trace.forEach(function(item) {
       console.log('  ', item.file, ':', item.line);
     });
   };
-  */
 
   var url = "http://localhost:8005/talk/stuff/html/index.html";
   page.open(url, function (status) {        
-    console.log("opening page");
-
+    console.log("page opened");
     if (status != "success") {
-      console.log("an error loading the page");
+      console.log("page load error");
     }
-
-    setTimeout(function () { phantom.exit(); }, 5000);
+    else {
+      page.evaluate(function () {
+        $script("/talk/stuff/js/init.js", function () {
+          window.done = function () { console.log("__quit__"); };
+        });
+      });
+    }
   });
 }
 catch (e) {
