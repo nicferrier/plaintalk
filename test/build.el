@@ -14,7 +14,8 @@
        ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
      :log-name "plaintalk")))
 
-(progn
+(defun plaintalk-test-run ()
+  (interactive)
   (elnode-start 'plaintalk-handler :port 8005 :defer-mode :immediate)
   (let* ((p1 (make-talk-person :id "u33223"))
          (p2 (make-talk-person :id "u243619"))
