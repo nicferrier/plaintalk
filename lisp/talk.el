@@ -1,4 +1,4 @@
-;;; talk.el --- elnode handler for plaintalk
+;;; talk.el --- elnode handler for plaintalk  -*- lexical-binding: t -*-
 
 ;;; Commentary:
 
