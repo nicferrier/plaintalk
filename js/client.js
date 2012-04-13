@@ -1,22 +1,41 @@
 
 var plaintalk = (function () {
   function $(selector) {return bonzo(qwery(selector));}
+  var userid = null;
+  var conversationid = null;
+  var waiting = null;
   return {
+    init: function (user, conversation) {
+      userid = user;
+      conversationid = conversation;
+      return true;
+    },
+
     comm: function () {
       try {
-        console.log("inside comm");
-        reqwest('/talk/to/?c=1&userid=u33223', function (resp) {
-          console.log(resp);
-          window.done();
+        waiting = reqwest('/talk/to/?c=' + conversationid + '&userid=' + userid, function (resp) {
+          waiting = null;
+          console.log("comm responded with " + resp);
         });
-        console.log("after talk/to call");
+        console.log("comm waiting: " + waiting);
       }
       catch (e) {
-        console.log("whoops! " + e);
+        console.log("comm failure: " + e);
       }
+      return waiting;
     },
     
-    talk: function (userid, text) {
+    talk: function (text) {
+      if (waiting != null) {
+        waiting.abort();
+        waiting = null;
+      }
+      waiting = reqwest('/talk/to/?c=' + conversationid + '&userid=' + userid + '&text=' + text, function (resp) {
+        waiting = null;
+        console.log("talk responded with " + resp);
+      });
+      console.log("talk waiting: " + waiting);
+      return waiting;
     }
   };
 })();

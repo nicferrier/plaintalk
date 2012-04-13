@@ -5,6 +5,6 @@ $script(["/talk/stuff/libs/bonzo/bonzo.js",
 
 $script.ready("plaintalk-bundle", function() {
   $script("/talk/stuff/js/client.js", function () {
-    plaintalk.comm();
+    // Should probably do something to signal readyness?
   });
 });

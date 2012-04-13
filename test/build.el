@@ -1,7 +1,7 @@
-;; run the tests for plaintalk
+;;; build.el --- testing for plaintalk  -*- lexical-binding: t -*-
 
 (require 'elnode)
-(require 'phantom)
+(require 'phantomjs)
 
 ;; for now
 (load-file "~/work/plaintalk/lisp/talk.el")
@@ -14,35 +14,76 @@
        ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
      :log-name "plaintalk")))
 
+(defvar plaintalk--phantom-count 0
+  "Number of phantom processes running.")
+
+(defun plaintalk--phantom ()
+  "Start a phantom instance.
+
+Ensures that we can kill elnode when all the services end."
+  (let* ((next-port (+ 6000 plaintalk--phantom-count))
+         (name (format "plaintalk-test-%d" next-port)))
+    (phantomjs-server
+     (intern name)
+     next-port
+     'plaintalk-test-phantom-complete)
+    (setq plaintalk--phantom-count
+          (+ plaintalk--phantom-count 1))))
+
+(defun plaintalk-test-phtantom-complete ()
+  (interactive)
+  (elnode-stop 8005)
+  (message "test run done"))
+
+(defun plaintalk--cb (status arg)
+  (unless (equal (string-to-number status) 200)
+    (message "some error handling page - status: %s" status)))
+
 (defun plaintalk-test-run ()
   (interactive)
   (elnode-start 'plaintalk-handler :port 8005 :defer-mode :immediate)
-  (let* ((p1 (make-talk-person :id "u33223"))
+  (let* (web1
+         web2
+         (page "http://localhost:8005/talk/stuff/html/index.html")
+         ;; Setup an environment ... 3 people ...
+         (p1 (make-talk-person :id "u33223"))
          (p2 (make-talk-person :id "u243619"))
          (p3 (make-talk-person :id "u2421313"))
+         ;; ... one conversation ....
          (c1 (make-talk-conversation
               :people (talk-hash
                        (talk-person-id p1) p1
                        (talk-person-id p2) p2
                        (talk-person-id p3) p3)))
+         ;; ... added to the list of global convs ....
          (let-talk-s (talk-hash "1" c1)))
     (setq talk-s let-talk-s)
+    ;; ... distribute a pending update from one user ...
     (talk--distrib-pending "1" "u243619" "test text")
-    (phantomjs-run
-     'test
-     ;; this is the phantom completion handler
-     ;; it's only called when phantom is done
-     (lambda ()
-       (elnode-stop 8005)
-       (message "test run ended!"))
-     "~/work/plaintalk/test/talk.js")))
+    ;; ... and now test with phantom
+    (setq web1
+          (phantomjs-server
+           'servertest 6101
+           'plaintalk-test-phantom-complete))
+    (sleep-for 2)
+    (phantomjs-open
+     web1 page
+     (lambda (status proc)
+       (sleep-for 3)
+       (phantomjs-call
+        proc "plaintalk.init('u33223', '1')"
+        (lambda (status proc)
+          (sleep-for 2)
+          (phantomjs-call
+           proc "plaintalk.comm()"
+           (lambda (status proc)
+             (sleep-for 2)
+             (phantomjs-exit proc 'plaintalk--cb)))))))))
 
-;; (elnode--deferred-processor)
 
+;;(elnode--deferred-processor)
 ;; (gethash "1" talk-s)
-;; (gethash
-;;  "u33223"
-;;  (talk-conversation-people (gethash "1" talk-s)))
+;; (gethash "u33223" (talk-conversation-people (gethash "1" talk-s)))
 ;; (talk--pending-p "1" "u33223")
 
 ;; End
