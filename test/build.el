@@ -14,22 +14,6 @@
        ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
      :log-name "plaintalk")))
 
-(defvar plaintalk--phantom-count 0
-  "Number of phantom processes running.")
-
-(defun plaintalk--phantom ()
-  "Start a phantom instance.
-
-Ensures that we can kill elnode when all the services end."
-  (let* ((next-port (+ 6000 plaintalk--phantom-count))
-         (name (format "plaintalk-test-%d" next-port)))
-    (phantomjs-server
-     (intern name)
-     next-port
-     'plaintalk-test-phantom-complete)
-    (setq plaintalk--phantom-count
-          (+ plaintalk--phantom-count 1))))
-
 (defun plaintalk-test-phtantom-complete ()
   (interactive)
   (elnode-stop 8005)
@@ -66,19 +50,10 @@ Ensures that we can kill elnode when all the services end."
            'servertest 6101
            'plaintalk-test-phantom-complete))
     (sleep-for 2)
-    (phantomjs-open
-     web1 page
-     (lambda (status proc)
-       (sleep-for 3)
-       (phantomjs-call
-        proc "plaintalk.init('u33223', '1')"
-        (lambda (status proc)
-          (sleep-for 2)
-          (phantomjs-call
-           proc "plaintalk.comm()"
-           (lambda (status proc)
-             (sleep-for 2)
-             (phantomjs-exit proc 'plaintalk--cb)))))))))
+    (phantomjs-open web1 page)
+    (phantomjs-call web1 "plaintalk.init('u33223', '1')")
+    (phantomjs-call web1 "plaintalk.comm()")
+    (phantomjs-exit web1)))
 
 
 ;;(elnode--deferred-processor)
