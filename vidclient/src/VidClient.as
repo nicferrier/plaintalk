@@ -58,7 +58,7 @@ package {
         private var camera:Camera;
         private var microphone:Microphone;
         private var nc:NetConnection;
-        private var nsPublish:NetStream = null;
+        private var myStream:NetStream = null;
         private var canvas:Array;
         private var videoPanels:Array;
         private var netStreams:Array;
@@ -90,6 +90,8 @@ package {
             var size:int = 2;
             var height:int = flashVars["height"];
 
+            javascript_method_log = flashVars["log"];
+
             debug("mainInit size = " + size + " size + 1 = " + (size + 1));
             debug("mainInit height = " + height);
             
@@ -114,39 +116,43 @@ package {
 
                 mxml_displayBox.addChild(canvas[i]);
             }
+
             
             debug("adding video panel " + videoPanels[0]);
 
             ExternalInterface.addCallback('ping', ping);
-            
             ExternalInterface.addCallback('id_set', idSet);
 
-            ExternalInterface.addCallback('add_slot', addSlot);
-            ExternalInterface.addCallback('show_me', showMe);
-            ExternalInterface.addCallback('stop_me', publishStop);
-            ExternalInterface.addCallback('stop_slot', stopSlot);
+            ExternalInterface.addCallback("connect", connect);
+            javascript_method_flash_connected = flashVars["flash_connected"];
 
-            // FIXME we don't need both selectCamera and setCamera
+            /*
+            ExternalInterface.addCallback('add_other', addOther);
+            ExternalInterface.addCallback('show_me', showMe);
+            ExternalInterface.addCallback('stop_me', myStreamStop);
+            */
+
             ExternalInterface.addCallback('camera_select', cameraSelect);
-            ExternalInterface.addCallback('set_camera', setCamera);
             ExternalInterface.addCallback('camera', cameraGet);
             ExternalInterface.addCallback('cameras', cameraListGet);
 
-            ExternalInterface.addCallback('get_microphone', getMicrophone);
-            ExternalInterface.addCallback('get_microphones', getMicrophones);
-            ExternalInterface.addCallback('set_microphone', setMicrophone);
-            ExternalInterface.addCallback('start_mic', startMic);
-            ExternalInterface.addCallback('stop_mic', stopMic);
-            ExternalInterface.addCallback('stop_audio', stopAudio);
-            ExternalInterface.addCallback('start_audio', startAudio);
+            // ExternalInterface.addCallback('set_camera', cameraStop);
+
+
+            ExternalInterface.addCallback('get_microphone', micGet);
+            ExternalInterface.addCallback('get_microphones', micListGet);
+            ExternalInterface.addCallback('set_microphone', micSelect);
+            ExternalInterface.addCallback('start_mic', micStart);
+            ExternalInterface.addCallback('stop_mic', micStop);
+            ExternalInterface.addCallback('stop_audio', audioStop);
+            ExternalInterface.addCallback('start_audio', audioStart);
             ExternalInterface.addCallback('mic_activity', micActivity);
             ExternalInterface.addCallback('mic_gain', micGain);
             ExternalInterface.addCallback('mic_rate', micRate);
-            ExternalInterface.addCallback('set_mic_rate', setMicRate);
-            ExternalInterface.addCallback('set_hash_id', sendFontsToJs);
+            ExternalInterface.addCallback('set_mic_rate', micRateSet);
             
             // Add the requested JS interface
-            javascript_method_flash_connected = flashVars["flash_connected"];
+
             javascript_method_flash_novidstream = flashVars["flash_novidstream"];;
             javascript_method_flash_failed = flashVars["flash_failed"];;
             javascript_method_flash_disconnected = flashVars["flash_disconnected"];
@@ -154,13 +160,6 @@ package {
             javascript_method_flash_notify = flashVars["flash_notify"];
             javascript_method_flash_cameraon = flashVars["flash_cameraon"];
             javascript_method_set_hash_id = flashVars["set_hash_id"];
-            javascript_method_log = flashVars["log"];
-
-            // Iniitalize fonts
-            sendFontsToJs();
-
-            // Backend server video connection settings
-            connect(flashVars["vid-connect-server"], flashVars["vid-connect-url"]);
 
             debug("vid client initialized");
         }
@@ -186,7 +185,7 @@ package {
                 }
                 
                 if (infoObject.info.code == "NetConnection.Connect.Failed") {
-                    _debug("failed to rtmp://" + server + url);
+                    _debug("failed to rtmp://" + server + path);
                 }
                 else if (infoObject.info.code == "NetConnection.Connect.Rejected") {
                     _debug(infoObject.info.description);
@@ -205,18 +204,19 @@ package {
 
         public function myStreamStop():void {
             debug("myStreamStop");
-            if (nsPublish != null) {
+            if (myStream != null) {
                 // here we are shutting down the connection to the server
-                nsPublish.attachCamera(null);
-                nsPublish.attachAudio(null);
-                nsPublish.publish(null);
-                nsPublish.close();
-                nsPublish = null;
+                myStream.attachCamera(null);
+                myStream.attachAudio(null);
+                myStream.publish(null);
+                myStream.close();
+                myStream = null;
             }
         }
 
         /** Sets up the stream sending video data to the Internet.
          */ 
+        /*
         private function myStreamPublish(streamId:String, published:Function):void
         {
             debug("myStreamPublish " + streamId);
@@ -251,26 +251,25 @@ package {
                 debug("myStreamPublish error: " + e.toString());
             }
         }
+        */
 
         /** Stop the selected camera from sending.
          */
         private function cameraStop():void
         {
-            if (nsPublish != null) {
-                nsPublish.attachCamera(null);
+            if (myStream != null) {
+                myStream.attachCamera(null);
             }
             video.attachCamera(null);
             video.clear();
             debug("camera stopped");
         }
-
-        /** Selects the internal camera from a user suggestion or just
-         * the default camera.
+        
+        /** Selects the internal camera from a user suggestion.
+         *
+         * Or just the default camera.
          */
-        private function cameraSelect(slotNumber:int, suggestedCamera:String):void {
-            // First stop the camera, if it's sending
-            cameraStop();
-
+        public function cameraSelect(suggestedCamera:String):void {
             try {
                 var cameraIdx:int = Camera.names.indexOf("USB Video Class Video");
                 var suggestedCameraIdx:int = Camera.names.indexOf(suggestedCamera);
@@ -282,21 +281,31 @@ package {
             catch (e:Error) {
                 debug("whoops! camera set failure " + e.message);
             }
+            finally {
+                // Capture the streaming state and then stop.
+                var cameraSending:Boolean = (myStream != null);
+                cameraStop();
 
-            // Now make the container...
-            var cameraContainer:VideoDisplay = videoPanels[slotNumber] as VideoDisplay;
-            var w:int = cameraContainer.width;
-            var h:int = cameraContainer.height;
-            debug("cameraSelect: width " + w + " height " + h);
-            video = new Video(w, h);
-            cameraContainer.addChild(video);
+                // Now make the container...
+                var cameraContainer:VideoDisplay = videoPanels[0] as VideoDisplay;
+                var w:int = cameraContainer.width;
+                var h:int = cameraContainer.height;
+                debug("cameraSelect: width " + w + " height " + h);
+                video = new Video(w, h);
+                cameraContainer.addChild(video);
 
-            var emptyCallback:Function = function ():void {
-                debug("cameraSelect started");
-            };
+                // Setup the sending stuff
+                var aspectRatio:Number = 3/5;
+                camera.setMode(w / aspectRatio, h / aspectRatio, 12, true);
+                camera.setMotionLevel(0);
+                camera.setQuality(0, 40);
+                camera.setKeyFrameInterval(10);
 
-            // .. and start the camera
-            cameraStart(video, emptyCallback);
+                // If we were sending data we need to start it up again
+                if (cameraSending) {
+                    // myStreamPublish(myTag, onCameraStart);                    
+                }
+            }
         }
 
         public function cameraGet():String {
@@ -314,7 +323,8 @@ package {
 
         /** start the camera object.
          */
-        private function cameraStart(video:Video, tag:String, onCameraStart:Function):void
+        /*
+        private function cameraStart(onCameraStart:Function):void
         {
             debug("startCamera " + camera.name);
 
@@ -327,13 +337,13 @@ package {
                 camera.setMotionLevel(0);
                 camera.setQuality(0, 40);
                 camera.setKeyFrameInterval(10);
-                camera.addEventListener(ActivityEvent.ACTIVITY, activityHandler);
+                camera.addEventListener(ActivityEvent.ACTIVITY, onCameraStart);
             }
             catch (e:Error) {
-                debug("startCamera error " + e.message);
+                debug("cameraStart error " + e.message);
             }
 
-            debug("startCamera attaching camera");
+            debug("cameraStart attaching camera");
             video.attachCamera(camera);
             
             // Now publish it
@@ -343,27 +353,24 @@ package {
                 }
 
                 if (nc != null) {
-                    debug("startCamera: calling myStreamPublish! " + myTag);
+                    debug("cameraStart: calling myStreamPublish! " + myTag);
                     myStreamPublish(myTag, onCameraStart);
                 }
                 else {
-                    debug("startCamera: no connection");
+                    debug("cameraStart: no connection");
                 }
             }
             catch (e:Error) {
-                debug("addMySlot error: " + e.toString());
+                debug("cameraStart error: " + e.toString());
             }
-            
-            // this sets up a polling function to check whether we're getting
-            // data from the camera yet - if the user hasn't accepted the
-            // flash security settings the camera will not have any video
+
             videoCheckTimer = new Timer(500);
             videoCheckTimer.addEventListener(TimerEvent.TIMER, checkForVideo);
             videoCheckTimer.start();
-
-            debug("startCamera: camera started");
+            debug("cameraStart: camera started");
         }
-
+        */
+        /*
         public function showMe():void {
             var cameraContainer:VideoDisplay = videoPanels[0] as VideoDisplay;
             var w:int = cameraContainer.width;
@@ -379,8 +386,9 @@ package {
 
             cameraStart(camStarted);
         }
-
-        /** Adds the local user to the room.
+        */
+        /** @deprecated
+         * Adds the local user to the room.
          *
          * slotNumber is the slot to add the user in (which might be
          *   top or bottom depending on how many there are)
@@ -388,7 +396,7 @@ package {
          * suggestedCamera is a possibly null or "" camera identifier to allow a pre-selected camera.
          * suggedtedMic is a possibly null or "" microphone identifier to allow a pre-selected microphone.
          */
-        public function addMySlot(slotNumber:int, 
+        /*public function addMySlot(slotNumber:int, 
                                   userId:String, 
                                   suggestedCamera:String, 
                                   suggestedMic:String):void {
@@ -454,7 +462,9 @@ package {
             }
             
         }
+        */
 
+        /*
         public function stopSlot(slotNumber:int):void {
             debug("stopSlot " + slotNumber);
             var videoContainer:VideoDisplay = videoPanels[slotNumber] as VideoDisplay;
@@ -479,83 +489,91 @@ package {
             v.attachNetStream(null);
             v.clear();
         }
+        */
 
-        public function addSlot(slotNumber:int, userId:String, userName:String):void {
+        /*
+        public function addOther():void {
             // Add a slot from a user
-            debug("addSlot " + slotNumber + ", " + userId + ", " + userName);
-            try {
-                stopSlot(slotNumber);
-            }
-            catch (e:Error) {
-                debug("addSlot - error stopping slot " + slotNumber);
+            debug("addOther");
+
+            // Remove any existing
+            var videoContainer:VideoDisplay = videoPanels[1] as VideoDisplay;
+            if (videoCotainer != null) {
+                var v:Video = videos[1] as Video;
+                debug("addOther found existing video: " + v.name);
+
+                var canvasContainer:Canvas = canvas[1] as Canvas;
+                canvasContainer.removeChildAt(1);
+                var nsPlay:NetStream = netStreams[1] as NetStream;
+                if (nsPlay != null) {
+                    debug("addOther found existing netstream " + nsPlay);
+                    nsPlay.play(null);
+                    nsPlay.close();
+                    nsPlay = null;
+                }
+                // Close this stuff off whatever
+                v.attachNetStream(null);
+                v.clear();
             }
 
+            // Setup new one.
             var videoContainer:VideoDisplay = videoPanels[slotNumber] as VideoDisplay;
-            debug("addSlot vid container = " + videoContainer);
+            debug("addOther vid container = " + videoContainer);
             var v:Video = new Video(videoContainer.width, videoContainer.height);
-            v.name = "videoSlot" + String(slotNumber);
-            // blur the video if it's poor quality to smooth out block aliasing
-            // v.filters = [new BlurFilter(4, 4, 1)]; 
+            v.name = "videoSlot";
+
             try {
-                debug("addSlot about to connect the NetStream " + nc);
+                debug("addOther about to connect the NetStream " + nc);
                 // Receiving the remote stream
                 var nsPlay:NetStream = new NetStream(nc);
-                nsPlay.client = new BlurringClient(videoPanels);
-                nsPlay.client.doBlurring(_doLocalBlurring);
-                var x:Object = new Object();
-                x.net_status_handler = function(infoObject:NetStatusEvent):void {
-                    debug("nsPlayOnStatus: " + infoObject.info.code + " (" + infoObject.info.description + ")");
+                var playStatus:Object = new Object();
+                playStatus.onStatus = function(infoObject:NetStatusEvent):void {
+                    var _debug:Function = function (extra:String):void {
+                        debug("addSlot.onStatus: " + infoObject.info.code + " " + extra);
+                    }
+
                     if (infoObject.info.code == "NetStream.Play.StreamNotFound") {
-                        debug("nsPlayOnStatus netstream stream not found");
-                        ExternalInterface.call("mc.room._flash_novidstream");
+                        _debug("not found");
                     }
                     else if (infoObject.info.code == "NetStream.Play.Failed") {
-                        debug("nsPlayOnStatus netstream failed");
-                        ExternalInterface.call("mc.room._flash_failed");
+                        _debug("failed");
                     }
                     else if (infoObject.info.code == "NetStream.Play.UnpublishNotify") {
-                        debug("nsPlayOnStatus netstream unpublished");
-                        ExternalInterface.call("mc.room._flash_disconnected");
+                        _debug("nsPlayOnStatus netstream unpublished");
                     }
                     else if (infoObject.info.code == "NetStream.Play.Start") {
-                        debug("nsPlayOnStatus netstream started");
+                        _debug("started");
                     }
                     else if (infoObject.info.code == "NetStream.Play.PublishNotify") {
-                        debug("nsPlayOnStatus netstream published");
-                        ExternalInterface.call("mc.room._flash_vidstream");
+                        debug("published");
                     }
                 };
 
-                nsPlay.addEventListener(NetStatusEvent.NET_STATUS, x.net_status_handler);
+                nsPlay.addEventListener(NetStatusEvent.NET_STATUS, playStatus.onStatus);
                 nsPlay.bufferTime = 0;
                 //   nsPlay.soundTransform.volume = volume.value / 100;
-                var connectStr:String = userId + "__" + slotNumber;
-                debug("addSlot about to attach " + connectStr);
+                var connectStr:String = userId; // does this need annonymizing... conversation string?
                 v.attachNetStream(nsPlay);
-                debug("addSlot about to play " + connectStr);
-                nsPlay.play("monster__" + connectStr);
-                debug("addSlot play complete for " + connectStr);
                 videoContainer.addChild(v);
- 
-                var canvasContainer:Canvas = canvas[slotNumber] as Canvas;
-                addNamePanel(userName, canvasContainer);
+                var canvasContainer:Canvas = canvas[1] as Canvas;
+                // addNamePanel(userName, canvasContainer);
 
-                netStreams[slotNumber] = nsPlay;
-                videos[slotNumber] = v;
+                netStreams[1] = nsPlay;
+                videos[1] = v;
             }
             catch (e:Error) {
-                debug("addSlot caught error: " + e.toString());
+                debug("addOther caught error: " + e.toString());
             }
         }
+        */
 
         public function ping ():void {
             debug("ping:: video panel " + videoPanels[0]);
             debug("pong");
         }
-        
 
 
-        public function getMicrophone():String {
+        public function micGet():String {
             if (microphone) {
                 return microphone.name;
             }
@@ -564,21 +582,21 @@ package {
             }
         }
 
-        public function getMicrophones():String {
+        public function micListGet():String {
             return Microphone.names.join(",");
         }
 
-        public function setMicrophone(name:String):void {
-            debug("setMicrophone called with " + name);
+        public function micSelect(name:String):void {
+            debug("micSelect called with " + name);
             // First capture state
             var muteState:Boolean = muted;
             // Then mute and stop and switch...
-            stopMic();
+            micStop();
             var index:int = Microphone.names.indexOf(name);
             microphone = Microphone.getMicrophone(index);
             // Now start if we weren't muted
             if (!muted) {
-                startMic();
+                micStart();
             }
         }
 
@@ -609,178 +627,46 @@ package {
             }
         }
 
-        public function setMicRate(rate:int):void {
+        public function micRateSet(rate:int):void {
             if (microphone) {
                 microphone.rate = rate;
             }
         }
 
 
-        public function stopMic():void {
+        public function micStop():void {
             debug("stopMic");
-            if (nsPublish != null) {
+            if (myStream != null) {
                 muted = true;
                 microphone.gain = 0;
-                // nsPublish.attachAudio(null);
+                // myStream.attachAudio(null);
             }
         }
 
-        public function startMic():void {
+        public function micStart():void {
             debug("startMic");
             microphone.setSilenceLevel(0);
             microphone.setUseEchoSuppression(true);
             microphone.rate = 11;
             microphone.gain = 30;
             muted = false;
-            if (nsPublish != null) {
-                nsPublish.attachAudio(microphone);
+            if (myStream != null) {
+                myStream.attachAudio(microphone);
             }
         }
 
-        public function stopAudio():void
+        public function audioStop():void
         {
-            debug("stopAudio");
-            debug("setting volume to 0");
+            debug("audioStop: setting volume to 0");
             SoundMixer.soundTransform = new SoundTransform(0);
         }
 
-        public function startAudio():void
+        public function audioStart():void
         {
-            debug("startAudio");
+            debug("audioStart");
             SoundMixer.soundTransform = new SoundTransform(1);
         }
 
-
-        /** snap a picture and upload it in a multipart form post to the endpoint.
-         *
-         * endpoint is some url that will accept the form post
-         * source to select whether to snap the local camera (0) or the remote video (1)
-         * extraQuery is some other extra query data to send with the form POST
-         */
-        public function snap(endpoint:String, source:int, extraQuery:String):void {
-            if(!_sendingVideo){
-                debug("[snap] no video to use, exiting");
-                return;
-            }
-                
-            debug("in snap(), drawing to bitmap " + endpoint);
-
-            var w:int = 320;
-            var h:int = 240;
-            var ratio:int = _video.width / 320;
-            var m:Matrix = new Matrix();
-            m.scale( 320 / _video.width, 240 / _video.height);
-            var bmpdata:BitmapData = new BitmapData(w, h);
-            if (source == 0) {
-                debug("snap: drawing videoCamera");
-                bmpdata.draw(_video, m);
-                // if URL was provided, upload now
-                upload(endpoint, w, h, bmpdata, extraQuery, 0);
-            }
-            else {
-                // we should raise an error
-            }
-        }
-
-        public function onHttp(evt:HTTPStatusEvent):void {
-            debug("onHttp " + evt.status);
-            lastHttpStatus = evt.status;
-        }
-
-        public function onLoaded(evt:Event):void {
-            // image upload complete
-            debug("onLoaded called " + evt.type);
-            var msg:String = "unknown";
-            var ldr:MultipartURLLoader;
-            ldr = evt.target as MultipartURLLoader;
-            var data:Object = ldr.getData();
-            debug("onLoaded target " + evt.target);
-            debug("onLoaded target data" + data);
-            if (lastHttpStatus == 200) {
-                debug("calling external");
-                ExternalInterface.call('mc.room._flash_notify', "success", data);
-            }
-        }
-        
-        private function upload(endpoint:String, 
-                                width:int, 
-                                height:int, 
-                                bmpdata:BitmapData, 
-                                extraQuery:String,
-                                src:int):void {
-            debug("upload converting to jpeg - extraQuery = " + extraQuery);
-
-            var photoBytes:ByteArray;
-            encoder = new JPGEncoder(100);
-            photoBytes = encoder.encode(bmpdata);
-            debug("jpeg length: " + photoBytes.length);
-
-            var request:MultipartURLLoader = new MultipartURLLoader();
-            request.addEventListener(Event.COMPLETE, onLoaded);
-            request.addEventListener(HTTPStatusEvent.HTTP_STATUS, onHttp);
- 
-            // simple string data
-            var extras:URLVariables = new URLVariables();
-            if (extraQuery != null && extraQuery != "") {
-                extras.decode(extraQuery);
-            }
-
-            debug("upload extras created from query");
-
-            for (var paramName:String in extras) {
-                debug("upload extra param: " + paramName + "=" + extras[paramName]);
-                request.addVariable(paramName, extras[paramName]);
-            }
- 
-            // file data: ByteArray, File name, Name of the file field, 
-            // content MIME type (default application/octet-stream)
-            // use [] if you need identical file field name
-            // specify MIME type for your file part
-            request.addFile(photoBytes, 'upload' + src + '.jpg', 'photo', 'image/jpeg');
-            try {
-                debug("sending post to: " + endpoint);
-                request.load(endpoint);
-            }
-            catch (error:Error) {
-                debug("Unable to load requested document.");
-                ExternalInterface.call(
-                    'mc.room._flash_notify', 
-                    "error", 
-                    "Unable to post data: " + error
-                );
-            }
-        }
-        
-        private function checkForVideo(evt:TimerEvent):void
-        {
-            if(video.videoWidth == 0 || video.videoHeight == 0){
-                debug("[checkForVideo] No video");
-                return;
-            }  else {
-                debug("[checkForVideo] Got video");
-                _sendingVideo = true;
-                videoCheckTimer.stop();
-                ExternalInterface.call("mc.room._flash_cameraon");
-            }
-        }
-        
-        private function sendFontsToJs():void{
-            var fontList:Array = Font.enumerateFonts(true); // get system fonts
-            fontList.sortOn("fontName", Array.CASEINSENSITIVE);
-            var fontString:String = "";
-            for(var i:int=0; i<fontList.length; i++){
-                fontString += fontList[i].fontName;
-            }
-            //debug("Font list: " + fontString);
-            ExternalInterface.call("mc.auth.set_hash_id", fontString);
-        }
-        
-        private function getDebugActivityHandler(name:String):Function {
-            var f:Function = function (event:ActivityEvent):void {
-                debug(name + ": " + event);
-            }
-            return f;
-        }
 
         private function debug(msg:String):void 
         {

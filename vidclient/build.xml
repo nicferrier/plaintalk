@@ -6,7 +6,7 @@
 
     <property name="mxmlc" location="${flex_dir}/bin/mxmlc"/>
 
-    <property name="dest_swf" location="${build_dir}/../vidclient.swf"/> 
+    <property name="dest_swf" location="${build_dir}/vidclient.swf"/> 
 
     <target name="swf">
         <delete file="${dest_swf}"/>
