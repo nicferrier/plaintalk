@@ -34,7 +34,8 @@
 ;; talk-conversation-people contain these types
 (defstruct talk-person
   id
-  (pending (list)))
+  (pending (list))
+  (name ""))
 
 ;; The type of a what is in `talk-s'
 (defstruct talk-conversation
@@ -42,6 +43,9 @@
 
 (defvar talk-s (talk-hash :test 'equal)
   "The list of conversations.")
+
+(defvar talk-people (talk-hash :test 'equal)
+  "List of people registered.")
 
 (defun talk--pending-p (conversation-id user-id)
   "Is anything pending on the COVERSATION-ID for the USER-ID?"
@@ -151,8 +155,8 @@
 (defun talk-handler (httpcon)
   "Handle the plaintalk web service.
 
-From the HTTPCON we get: `conversation-id' from the path match
-and `user-id' and `text' from the parameters."
+From the HTTPCON we get parameters: `conversation-id', `user-id'
+and `text'."
   (elnode-error "talk-handler got %s" httpcon)
   (let ((submit (elnode-http-param httpcon "submit")))
     (if submit
@@ -167,6 +171,39 @@ and `user-id' and `text' from the parameters."
         (talk--pending-p conversation-id user)
         (let ((json-to-send (talk--pending-get conversation-id user)))
           (elnode-send-json httpcon json-to-send))))))
+
+(defun talk--uuid ()
+  "Get a UUID from linux."
+  (elnode-trim (shell-command-to-string "cat /proc/sys/kernel/random/uuid")))
+
+(defun talk-init-handler (httpcon)
+  "Initiate state for conversations and users.
+
+Makes unique ids for a 'me' and a 'them' user and for their
+conversation."
+  (let* ((me (elnode-http-param httpcon "me"))
+         (them (elnode-http-param httpcon "them"))
+         (me-person (make-talk-person :id (talk--uuid)
+                                      :name me))
+         (them-person (make-talk-person :id (talk--uuid)
+                                        :name them))
+         (conversation-id (talk--uuid))
+         (tbl (make-hash-table :test 'equal)))
+    ;; Store the 2 people objects
+    (puthash (talk-person-id me-person) me-person talk-people)
+    (puthash (talk-person-id them-person) them-person talk-people)
+    ;; Store the conversation
+    (puthash conversation-id
+             (make-talk-conversation
+              :people (talk-hash
+                       (talk-person-id me-person) me-person
+                       (talk-person-id them-person) them-person))
+             talk-s)
+    ;; Make the response
+    (puthash me (talk-person-id me-person) tbl)
+    (puthash them (talk-person-id them-person) tbl)
+    (puthash "_id" conversation-id tbl)
+    (elnode-send-json httpcon tbl)))
 
 (provide 'talk)
 

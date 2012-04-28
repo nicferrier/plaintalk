@@ -1,10 +1,27 @@
 
 var plaintalk = (function () {
   function $(selector) {return bonzo(qwery(selector));}
-  var userid = null;
-  var conversationid = null;
+  var my_user_id = null;
+  var other_user_id = null;
+  var conversation_id = null;
   var waiting = null;
   return {
+    nameinit: function (me, them, cont) {
+      waiting = reqwest({
+        url: '/talk/make/?me=' + me + '&them=' + them, 
+        type: 'json',
+        method: 'post',
+        success: function (resp) {
+          my_user_id = resp[me];
+          other_user_id = resp[them];
+          conversation_id = resp["_id"];
+          cont();
+        }
+      });
+    },
+
+    // this is kinda deprecated....
+    // it's the old init func, the new one is nameinit
     init: function (user, conversation) {
       userid = user;
       conversationid = conversation;
@@ -13,7 +30,7 @@ var plaintalk = (function () {
 
     comm: function () {
       try {
-        waiting = reqwest('/talk/to/?c=' + conversationid + '&userid=' + userid, function (resp) {
+        waiting = reqwest('/talk/to/?c=' + conversation_id + '&userid=' + my_user_id, function (resp) {
           waiting = null;
           console.log("comm responded with " + resp);
         });
@@ -30,7 +47,7 @@ var plaintalk = (function () {
         waiting.abort();
         waiting = null;
       }
-      waiting = reqwest('/talk/to/?c=' + conversationid + '&userid=' + userid + '&text=' + text, function (resp) {
+      waiting = reqwest('/talk/to/?c=' + conversation_id + '&userid=' + my_user_id + '&text=' + text, function (resp) {
         waiting = null;
         console.log("talk responded with " + resp);
       });

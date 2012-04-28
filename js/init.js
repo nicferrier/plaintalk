@@ -31,7 +31,13 @@ $script.ready("plaintalk-bundle", function() {
   bean.add($("#talkform .button")[0], "click", function (evt) {
     if ($("#talkform form")[0].checkValidity()) {
       $("#talkform").addClass("hidden");
-      plaintalk_video.display();
+      plaintalk.nameinit(
+        $("#talkform form input")[0].value,
+        $("#talkform form input")[1].value,
+        function () {
+          plaintalk_video.display();
+        }
+      );
     }
   });
 });

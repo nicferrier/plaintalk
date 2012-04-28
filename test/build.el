@@ -11,6 +11,7 @@
     (elnode-hostpath-dispatcher
      httpcon
      `(("[^/]+/talk/to/$" . talk-handler)
+       ("[^/]+/talk/make/$" . talk-init-handler)
        ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
      :log-name "plaintalk")))
 
