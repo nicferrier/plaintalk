@@ -89,11 +89,10 @@ package {
             var flashVars:Object = LoaderInfo(this.root.loaderInfo).parameters;
             var size:int = 2;
             var height:int = flashVars["height"];
-
+            var width:int = height * 1.3333;
             javascript_method_log = flashVars["log"];
 
-            debug("mainInit size = " + size + " size + 1 = " + (size + 1));
-            debug("mainInit height = " + height);
+            debug("height,width = " + height + "," + width);
             
             canvas = new Array(size);
             videoPanels = new Array(size);
@@ -106,7 +105,7 @@ package {
             for (var i:int = 0; i < size; i++) {
                 videoPanels[i] = new VideoDisplay();
                 videoPanels[i].volume = 1.0;
-                videoPanels[i].width = height * 1.3333;
+                videoPanels[i].width = width;
                 videoPanels[i].height = height;
 
                 canvas[i] = new Canvas();
@@ -116,7 +115,6 @@ package {
 
                 mxml_displayBox.addChild(canvas[i]);
             }
-
             
             debug("adding video panel " + videoPanels[0]);
 
@@ -135,6 +133,7 @@ package {
             ExternalInterface.addCallback('camera_select', cameraSelect);
             ExternalInterface.addCallback('camera', cameraGet);
             ExternalInterface.addCallback('cameras', cameraListGet);
+            ExternalInterface.addCallback('camera_stop', cameraStop);
 
             // ExternalInterface.addCallback('set_camera', cameraStop);
 
@@ -262,7 +261,7 @@ package {
             }
             video.attachCamera(null);
             video.clear();
-            debug("camera stopped");
+            debug("cameraStop!");
         }
         
         /** Selects the internal camera from a user suggestion.
@@ -273,37 +272,55 @@ package {
             try {
                 var cameraIdx:int = Camera.names.indexOf("USB Video Class Video");
                 var suggestedCameraIdx:int = Camera.names.indexOf(suggestedCamera);
-                debug("addMySlot suggestedCameraIdx " + suggestedCameraIdx);
                 cameraIdx = (suggestedCameraIdx > -1) ? suggestedCameraIdx:cameraIdx;
-                debug("addMySlot camera == " + cameraIdx);
-                camera = Camera.names[cameraIdx];
+                camera = Camera.getCamera(Camera.names[cameraIdx]);
+                if (camera == null) {
+                    camera = Camera.getCamera();
+                }
             }
             catch (e:Error) {
-                debug("whoops! camera set failure " + e.message);
+                debug("cameraSelect:: whoops! camera set failure " + e.message);
             }
             finally {
+                debug("cameraSelect:: camera selected == " + camera);
                 // Capture the streaming state and then stop.
                 var cameraSending:Boolean = (myStream != null);
-                cameraStop();
+                //  cameraStop();
+
+                var camStarted:Function = function ():void {
+                    debug("cameraSelect.camStarted!");
+                };
+                
+                camera.addEventListener(ActivityEvent.ACTIVITY, camStarted);
 
                 // Now make the container...
                 var cameraContainer:VideoDisplay = videoPanels[0] as VideoDisplay;
                 var w:int = cameraContainer.width;
                 var h:int = cameraContainer.height;
-                debug("cameraSelect: width " + w + " height " + h);
+                debug("cameraSelect:: width " + w + " height " + h);
                 video = new Video(w, h);
                 cameraContainer.addChild(video);
 
                 // Setup the sending stuff
                 var aspectRatio:Number = 3/5;
-                camera.setMode(w / aspectRatio, h / aspectRatio, 12, true);
+                var framesPS:int = 15;
+                camera.setMode(int(w / aspectRatio),
+                               int(h / aspectRatio),
+                               framesPS, 
+                               true);
                 camera.setMotionLevel(0);
                 camera.setQuality(0, 40);
                 camera.setKeyFrameInterval(10);
 
+                debug("cameraSelect:: camera initialized");
+
                 // If we were sending data we need to start it up again
                 if (cameraSending) {
                     // myStreamPublish(myTag, onCameraStart);                    
+                }
+                else {
+                    debug("cameraSelect:: adding to video");
+                    video.attachCamera(camera);
                 }
             }
         }

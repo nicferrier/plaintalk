@@ -14,7 +14,7 @@
        ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
      :log-name "plaintalk")))
 
-(defun plaintalk-test-phtantom-complete ()
+(defun plaintalk-test-phantom-complete ()
   (interactive)
   (elnode-stop 8005)
   (message "test run done"))
@@ -55,10 +55,26 @@
     (phantomjs-call web1 "plaintalk.comm()")
     (phantomjs-exit web1)))
 
-
-;;(elnode--deferred-processor)
-;; (gethash "1" talk-s)
-;; (gethash "u33223" (talk-conversation-people (gethash "1" talk-s)))
-;; (talk--pending-p "1" "u33223")
+;; Actually phantomjs does NOT support flash... so this does not work properly
+(defun plaintalk-test-video-run ()
+  (interactive)
+  (elnode-start 'plaintalk-handler :port 8005 :defer-mode :immediate)
+  (let* (web1
+         web2
+         (page "http://localhost:8005/talk/stuff/html/videotest.html"))
+    ;; ... and now test with phantom
+    (setq web1
+          (phantomjs-server
+           'servertest 6101
+           'plaintalk-test-phantom-complete))
+    (sleep-for 2)
+    (phantomjs-open web1 page)
+    (sleep-for 2)
+    (phantomjs-call
+     web1
+     (concat
+      "swfobject.getObjectById('video')"
+      ".camera_select('Webcam (V4L2)')"))
+    (phantomjs-exit web1)))
 
 ;; End

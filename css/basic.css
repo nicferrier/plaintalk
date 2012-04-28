@@ -1,0 +1,46 @@
+body {
+    margin: 0;
+    margin-bottom: 0px;
+    padding-bottom: 0px;
+}
+
+#content {
+    margin-left: 10%;
+    margin-right: 10%;
+    width: 80%;
+}
+
+div#video img {
+    width: 100%;
+    margin-bottom: 1em;
+}
+
+h1 {
+    text-align: center;
+    color: FireBrick;
+}
+
+.button {
+    text-align: center;
+    display: block;
+    width: 20%;
+    margin-left: 40%;
+    margin-right: 40%;
+    background-color: DarkRed;
+}
+
+#footer {
+    margin-top: 15em;
+    margin-bottom: 0px;
+    height: 15em;
+    font-size: small;
+    border-top: thin solid black;
+    background: -webkit-gradient(linear, left top, left bottom, from(DarkRed), to(LightSalmon));
+    background: -moz-linear-gradient(top,  DarkRed, LightSalmon);
+    color: ivory;
+}
+
+#footercontent {
+    margin-left: 10%;
+    margin-right: 10%;
+}
