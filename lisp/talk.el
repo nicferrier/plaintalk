@@ -4,6 +4,15 @@
 
 ;; The plaintalk chat service.
 
+;; The basic idea is that people register their name, another name
+;; (their friend) and get back an id for each of them and a conversation id.
+
+;; The conversation id is used as the unique record of the
+;; conversation.  The other ids are used to refer to users.
+
+;; Conversations keep the pending list of chat which users have sent
+;; but has not been delivered to other users yet.
+
 ;;; Code:
 
 (require 'elnode)
