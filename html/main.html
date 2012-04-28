@@ -12,16 +12,26 @@
   <!-- Place favicon.ico and apple-touch-icon.png in the root directory: mathiasbynens.be/notes/touch-icons -->
   <link rel="stylesheet" href="/talk/stuff/css/style.css">
   <link rel="stylesheet" href="/talk/stuff/css/foundation-ui.css">
+  <link rel="stylesheet" href="/talk/stuff/css/foundation-forms.css">
   <link rel="stylesheet" href="/talk/stuff/css/basic.css">
   <script src="/talk/stuff/js/modernizr-2.5.3.min.js"></script>
 </head>
 <body>
     <div id="content">
-        <h1>talk to your friends with video</h1>
+        <h1>talk to your friends with cameras</h1>
         <div id="video">
             <img src="/talk/stuff/img/videopanel.jpg"/>
         </div>
         <a href="javascript:;" class="button">talk to a friend now</a>
+    </div>
+    <div class="hidden" id="talkform">
+        <h2>setup a chat</h2>
+        <form id="setup">
+            Hey <input type="text" name="them" placeholder="your friend's name" required="1"/> 
+            I wanna talk to you!!! 
+            luv <input type="text" name="me" placeholder="your name" required="1"/>
+        </form>
+        <a href="javascript:;" class="disabled button">make a chat now</a>
     </div>
     <div id="footer">
         <div id="footercontent">

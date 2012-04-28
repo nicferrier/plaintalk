@@ -75,6 +75,7 @@ package {
         private var javascript_method_flash_vidstream:String;
         private var javascript_method_flash_notify:String;
         private var javascript_method_flash_cameraon:String;
+        private var javascript_method_flash_initialized:String;
         private var javascript_method_set_hash_id:String;
         private var javascript_method_log:String;
 
@@ -85,7 +86,7 @@ package {
         public function mainInit(event:FlexEvent):void {
             // class constructor
             flash.system.Security.allowDomain("*");
-
+            
             var flashVars:Object = LoaderInfo(this.root.loaderInfo).parameters;
             var size:int = 2;
             var height:int = flashVars["height"];
@@ -122,7 +123,6 @@ package {
             ExternalInterface.addCallback('id_set', idSet);
 
             ExternalInterface.addCallback("connect", connect);
-            javascript_method_flash_connected = flashVars["flash_connected"];
 
             /*
             ExternalInterface.addCallback('add_other', addOther);
@@ -151,9 +151,10 @@ package {
             ExternalInterface.addCallback('set_mic_rate', micRateSet);
             
             // Add the requested JS interface
-
+            javascript_method_flash_initialized = flashVars["flash_inited"];
+            javascript_method_flash_connected = flashVars["flash_connected"];
             javascript_method_flash_novidstream = flashVars["flash_novidstream"];;
-            javascript_method_flash_failed = flashVars["flash_failed"];;
+            javascript_method_flash_failed = flashVars["flash_failed"];
             javascript_method_flash_disconnected = flashVars["flash_disconnected"];
             javascript_method_flash_vidstream = flashVars["flash_vidstream"];
             javascript_method_flash_notify = flashVars["flash_notify"];
@@ -161,6 +162,9 @@ package {
             javascript_method_set_hash_id = flashVars["set_hash_id"];
 
             debug("vid client initialized");
+            if (javascript_method_flash_initialized != null) {
+                ExternalInterface.call(javascript_method_flash_initialized);
+            }
         }
 
         /** Set the user's id.
