@@ -4,17 +4,15 @@ var plaintalk_video = (function() {
     console.log(str);
   };
   return {
-    flash_inited: function () {
-      var camlist = swfobject.getObjectById('video').cameras();
-      swfobject.getObjectById('video').camera_select(camlist);
-    },
-
     display: function () {
       // Work out the height of the video.
-      var height = $("#video")[0].clientHeight;
+      var height = $("#video")[0].clientHeight - 1;
+      var width = $("#video")[0].clientWidth - 1;
+      swfobject.talklog("height = " + height);
       var flashvars = {
         size: "2",
         height: "" + height,
+        width: "" + width,
         wowza: "some url",
         log: "swfobject.talklog",
         flash_inited: "plaintalk_video.flash_inited",
@@ -28,12 +26,26 @@ var plaintalk_video = (function() {
       swfobject.embedSWF(
         "/talk/stuff/vidclient/vidclient.swf",
         "video",
-        "" + (height * 1.3333 * 2) + "px",
+        width + "px",
         height + "px",
         "10.0.0",
         "",
         flashvars, params
       );
-    }
+
+      $("#chat").addClass("enabled");
+      $("input[name=chatline]").removeAttr("disabled");
+      bean.add($("form[name=chat]")[0], "submit", function (evt) {
+        var to_send = $("input[name=chatline]")[0].value;
+        $("input[name=chatline]")[0].value = "";
+      });
+      $("#filler").addClass("hidden");
+    },
+
+    flash_inited: function () {
+      var camlist = swfobject.getObjectById('video').cameras();
+      swfobject.getObjectById('video').camera_select(camlist);
+    },
+
   };
 })();

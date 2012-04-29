@@ -90,7 +90,7 @@ package {
             var flashVars:Object = LoaderInfo(this.root.loaderInfo).parameters;
             var size:int = 2;
             var height:int = flashVars["height"];
-            var width:int = height * 1.3333;
+            var width:int = flashVars["width"] / 2;
             javascript_method_log = flashVars["log"];
 
             debug("height,width = " + height + "," + width);
