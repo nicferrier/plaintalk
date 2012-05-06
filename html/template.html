@@ -1,0 +1,76 @@
+<!doctype html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>meomer - talk to your friends</title>
+  <meta name="description" content="talking to your friends with video has never been easier">
+  <meta name="viewport" content="width=device-width">
+  <!-- Place favicon.ico and apple-touch-icon.png in the root directory: mathiasbynens.be/notes/touch-icons -->
+  <link rel="stylesheet" href="/talk/stuff/css/style.css"/>
+  <link rel="stylesheet" href="/talk/stuff/css/foundation-ui.css"/>
+  <link rel="stylesheet" href="/talk/stuff/css/foundation-forms.css"/>
+  <link rel="stylesheet" href="/talk/stuff/css/basic.css"/>
+  <script type="text/javascript" src="http://use.typekit.com/hui4srj.js"></script>
+  <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+</head>
+<body>
+    <div id="header"><!##E top-right E##!></div>
+    <div id="content">
+        <h1>meomer - talk to your friends</h1>
+        <div id="video">
+            <img src="/talk/stuff/img/videopanel.jpg"/>
+        </div>
+        <!##E start-button E##!>
+        <form name="chat" action="javascript:;">
+            <input type="submit"/>
+            <input name="chatline" placeholder="type your message and hit enter to chat" disabled="1"/>
+        </form>
+        <div id="chat">
+            <div id="filler">
+                <div class="chatentry"><span class="chatname">Caroline</span>: <span class="chattext">No arseing about on your status.</span></div>
+                <div class="chatentry"><span class="chatname">Nic</span>: <span class="chattext">they're good</span></div>
+                <div class="chatentry"><span class="chatname">Nic</span>: <span class="chattext">watching get stuffed?</span></div>
+                <div class="chatentry"><span class="chatname">Caroline</span>: <span class="chattext">That was fun!</span></div>
+                <div class="chatentry"><span class="chatname">Caroline</span>: <span class="chattext">Ahahahahah!</span></div>
+                <div class="chatentry"><span class="chatname">Nic</span>: <span class="chattext">lol @hoxty</span></div>
+                <div class="chatentry"><span class="chatname">Nic</span>: <span class="chattext">definitely. that'll be very useful. gives us the confidence about her</span></div>
+            </div>
+        </div>
+    </div>
+    <div class="hidden" id="talkform">
+        <h2>setup a chat</h2>
+        <form id="setup">
+            Hey <input name="them" placeholder="your friend's name" required="1"/> 
+            I wanna talk to you!!! 
+            luv <input name="me" placeholder="your name" required="1"/>
+            <br/>
+            let <span class="meomer">meomer.com</span> make a cookie to record your username: <input name="make_cookie" type="checkbox"/>
+        </form>
+        <a href="javascript:;" class="disabled button">make a chat now</a>
+    </div>
+    <div id="footer">
+        <div id="footercontent">
+            <p>
+                An easy way to keep in touch with your closest
+                friends, or new people you meet online!
+            </p>
+            <p>Copyright (C) N J Ferrier 2012</p>
+        </div>
+    </div>
+    <script src="/talk/stuff/libs/script.js/dist/script.js" language="Javascript">
+    </script>
+    <script>
+        $script("/talk/stuff/js/init.js");
+    </script>
+    <!--script>
+        var _gaq=[['_setAccount','UA-XXXXX-X'],['_trackPageview']];
+        (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+        g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+        s.parentNode.insertBefore(g,s)}(document,'script'));
+    </script -->
+</body>
+</html>
