@@ -297,11 +297,14 @@ It also cookie decorates the response with the user-id."
   (let* ((me (elnode-http-param httpcon "me"))
          (them (elnode-http-param httpcon "them"))
          (conversation-id (talk--uuid))
-         ;; FIXME - WRONG!!! must create person-id??
-         ;; USE CL STYLE &key ID for talk--person
-         (me-person (talk--person (talk-s conversation-id)))
-         (them-person (talk--person (talk-s conversation-id)
-                                    :key 'name :value them))
+         (me-person
+          (talk--person
+           (talk-s conversation-id)
+           :key 'name :value me))
+         (them-person
+          (talk--person
+           (talk-s conversation-id)
+           :key 'name :value them))
          (tbl (make-hash-table :test 'equal)))
     ;; Make the response
     (puthash me (oref me-person id) tbl)
@@ -313,21 +316,22 @@ It also cookie decorates the response with the user-id."
   "Full stack test for init."
   (with-elnode-mock-server
     'talk-handler
-    (let ((r (elnode-test-call
-              (format "/talk/make/?me=%s&them=%s" "nic" "caroline")
-              :parameters '(("me" . "nic")
-                            ("them" . "caroline")))))
-      (elnode-error "result -> %s" r)
+    (let ((r
+           (elnode-test-call
+            (format "/talk/make/?me=%s&them=%s" "nic" "caroline")
+            :parameters
+            '(("me" . "nic")
+              ("them" . "caroline")))))
       (should
        (equal
         200
         (plist-get r :status)))
-      (should
-       (equal
-        (list 'nic 'caroline '_id)
-        (loop for i in (json-read-from-string
-                        (plist-get r :result-string))
-              collect (car i)))))))
+      (let ((json-list (json-read-from-string
+                        (plist-get r :result-string))))
+        (should
+         (equal
+          (list 'nic 'caroline '_id)
+          (loop for i in json-list collect (car i))))))))
 
 
 (defun talk--conversation-to (httpcon)
