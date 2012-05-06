@@ -33,8 +33,8 @@ $script.ready("plaintalk-bundle", function() {
     if ($("#talkform form")[0].checkValidity()) {
       $("#talkform").addClass("hidden");
       plaintalk.nameinit(
-        $("#talkform form input")[0].value,
-        $("#talkform form input")[1].value,
+        $("#talkform form input[name=me]")[0].value,
+        $("#talkform form input[name=them]")[0].value,
         function () {
           plaintalk_video.display();
         }
