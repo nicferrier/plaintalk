@@ -15,6 +15,7 @@ var plaintalk = (function () {
           my_user_id = resp[me];
           other_user_id = resp[them];
           conversation_id = resp["_id"];
+          document.cookie = "plaintalk_user=" + my_user_id + "; expires=Thu, 23 Aug 2013 20:47:11 UTC; path=/";
           cont();
         }
       });
@@ -30,7 +31,7 @@ var plaintalk = (function () {
 
     comm: function () {
       try {
-        waiting = reqwest('/talk/to/?c=' + conversation_id + '&userid=' + my_user_id, function (resp) {
+        waiting = reqwest('/talk/con/' + conversation_id + '/?userid=' + my_user_id, function (resp) {
           waiting = null;
           console.log("comm responded with " + resp);
         });

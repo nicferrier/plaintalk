@@ -5,6 +5,16 @@ var plaintalk_video = (function() {
   };
   return {
     display: function () {
+      if (document.location.hostname == "localhost") {
+        /** 
+            FIXME
+            
+            humane doesn't seem to work??
+        **/
+        console.log("localhost and flash video == no no");
+        humane.timeout = 8000;
+        humane.error("localhost does not work with flash video");
+      }
       // Work out the height of the video.
       var height = $("#video")[0].clientHeight - 1;
       var width = $("#video")[0].clientWidth - 1;

@@ -3,6 +3,7 @@ $script(["/talk/stuff/js/swfobject.js",
          "/talk/stuff/libs/bonzo/bonzo.js",
          "/talk/stuff/libs/bean/bean.js",
          "/talk/stuff/libs/qwery/qwery.js",
+         "/talk/stuff/libs/humane-js/humane.js",
          "/talk/stuff/libs/reqwest/reqwest.js"],function () {
            $script(["/talk/stuff/js/client.js",
                     "/talk/stuff/js/videoclient.js"],

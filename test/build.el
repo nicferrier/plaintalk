@@ -2,18 +2,10 @@
 
 (require 'elnode)
 (require 'phantomjs)
+(require 'cl)
 
 ;; for now
 (load-file "~/work/plaintalk/lisp/talk.el")
-
-(defun plaintalk-handler (httpcon)
-  (let ((webserver (elnode-webserver-handler-maker "~/work/plaintalk/")))
-    (elnode-hostpath-dispatcher
-     httpcon
-     `(("[^/]+/talk/to/$" . talk-handler)
-       ("[^/]+/talk/make/$" . talk-init-handler)
-       ("[^/]+/talk/stuff/\\(.*\\)" . ,webserver))
-     :log-name "plaintalk")))
 
 (defun plaintalk-test-phantom-complete ()
   (interactive)
@@ -26,7 +18,7 @@
 
 (defun plaintalk-test-run ()
   (interactive)
-  (elnode-start 'plaintalk-handler :port 8005 :defer-mode :immediate)
+  (elnode-start 'talk-handler :port 8005 :defer-mode :immediate)
   (let* (web1
          web2
          (page "http://localhost:8005/talk/stuff/html/index.html")
